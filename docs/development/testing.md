@@ -11,16 +11,19 @@ Checks (x86_64-linux, checks partition):
 - `smoke-rea-agents` (`pkgs/rea-agents/smoke.nix`): `rea --version`
   matches the package version; an MCP `initialize`, then `tools/list`,
   over stdio returns the server name `rea` and a non-empty tool
-  catalog; the generated skill has its `SKILL.md` and `references/`;
+  catalog; the generated skill has its `SKILL.md` and `references/`,
+  and the `tool_count` in its front matter equals the number of tools
+  the server lists;
   `@lydell/node-pty`, the one native addon, loads; and
   `rea analyze-javascript-application` reads a three-file fixture
   application and reports its module graph. The analysis launches
   workers, which REA starts only after checking process ownership with
   procps `ps`.
-- `smoke-claude-code-plugin` (`pkgs/claude-code-plugin/smoke.nix`):
-  the plugin without `mcpServer` declares no server; with one, the
-  manifest names it with its environment, and the command it names
-  answers an MCP `initialize`. Both forms carry the skill.
+- `smoke-reverse-engineer-anything`
+  (`pkgs/reverse-engineer-anything/smoke.nix`): `SKILL.md` names the
+  skill in its front matter, and every `references/*.md` it names
+  exists. The package's `allowedReferences = [ ]` makes its own build
+  fail if the skill refers to a store path.
 - `treefmt`.
 
 The update workflow builds both smoke checks by name before it

@@ -6,14 +6,14 @@ engineering native binaries, JavaScript and Electron applications, .NET
 assemblies and websites. Upstream distributes it as the npm package
 `rea-agents` and installs it with `npx rea-agents setup`, which edits
 the configuration of each agent in place. This flake builds the same
-package from source instead, at a pinned release, and packages its
-agent integration as a Claude Code plugin that a Nix configuration
-installs like any other file.
+package from source instead, at a pinned release, and packages REA's
+agent skill on its own, so that a Nix configuration installs it like
+any other file.
 
 | Package | What it is |
 |---|---|
 | `rea-agents` | the `rea` and `rea-agents` commands, built from upstream's newest stable release |
-| `claude-code-plugin` | a Claude Code skills-dir plugin: REA's workflow skill, and an MCP server entry once its consumer names one |
+| `reverse-engineer-anything` | REA's agent skill, the directory with its `SKILL.md` and `references/` |
 
 ## Use it
 
@@ -41,38 +41,36 @@ wrapper adds procps to `PATH`, because REA checks process ownership
 with `ps` before it launches a child process on Linux. The optional
 Frida integration is left out.
 
-## The Claude Code plugin
+## The skill and the server
 
-Claude Code loads a plugin in place from a directory under
-`~/.claude/skills` that holds a `.claude-plugin/plugin.json`. The
-plugin here holds REA's generated `reverse-engineer-anything` skill.
-It declares no MCP server until its consumer names one:
+`reverse-engineer-anything` is the skill upstream's setup would copy
+into an agent's skill directory, such as `~/.claude/skills` for Claude
+Code. The build of `rea-agents` generates it for the tool catalog of
+that version, and this package copies it out. It refers to no store
+path, so installing it brings neither REA nor Node into the closure
+of the configuration that installs it.
 
-```nix
-pkgs.rea-nix.claude-code-plugin.override {
-  mcpServer = {
-    command = "${pkgs.socat}/bin/socat";
-    args = [ "STDIO" "VSOCK-CONNECT:3:5000" ];
-  };
-}
-```
-
-REA opens untrusted files with the permissions of whoever starts it.
-Its security policy says that its bridges "are not a sandbox", and
-several of its analyses run the target. Where the server runs is
-therefore the consumer's decision, and the plugin has no default for
-it. The example above reaches a server inside a virtual machine over
-vsock. `${pkgs.rea-nix.rea-agents}/bin/rea-agents` with the argument
-`mcp` starts a server on the host itself.
+The skill drives REA's MCP tools, and this flake does not register the
+server with any agent. REA opens untrusted files with the permissions
+of whoever starts it. Its security policy says that its bridges "are
+not a sandbox", and several of its analyses run the target. So the
+consumer decides where the server runs and how an agent reaches it.
+`rea-agents mcp` starts a server over stdio. A consumer that runs it
+inside a virtual machine registers a client for it instead, for
+example `socat STDIO VSOCK-CONNECT:<cid>:<port>`. The skill and the
+server should come from the same `rea-nix` revision, since the skill
+describes the tools of one version.
 
 ## Development
 
 `nix flake check` builds both packages and runs their smoke checks.
 The check of `rea-agents` runs the CLI, an MCP `initialize` and
-`tools/list` exchange over stdio (the catalog must not be empty), the
-native terminal addon, and a static analysis of a small JavaScript
-application. The check of the plugin reads both forms of its manifest
-and has the server named by one of them answer an MCP handshake.
+`tools/list` exchange over stdio (the catalog must not be empty, and
+must have as many tools as the generated skill describes), the native
+terminal addon, and a static analysis of a small JavaScript
+application. The check of the skill reads its `SKILL.md` and every
+reference it names. The skill package fails to build if it ever refers
+to a store path.
 
 The checks earn their place. Upstream releases often, and a
 successful build does not show that the server still starts, that the

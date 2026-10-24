@@ -11,8 +11,8 @@
 # The smoke checks are the proof that matters: upstream releases often
 # (two releases on 2026-10-18 alone), and a successful build does not
 # show that the MCP server still answers, that the skill is still
-# generated, or that the analysis still starts. The plugin's check runs
-# too, since the plugin carries the skill of the new version.
+# generated, or that the analysis still starts. The skill's check runs
+# too, since the skill package is copied from the new version.
 #
 # A push made with the workflow's own token starts no other workflow,
 # so the two that a push to main would have started are dispatched at
@@ -85,7 +85,7 @@ jobs:
           git diff -- "pkgs/$package"
           if nix build --print-build-logs --no-link \
                ".#checks.x86_64-linux.smoke-rea-agents" \
-               ".#checks.x86_64-linux.smoke-claude-code-plugin"; then
+               ".#checks.x86_64-linux.smoke-reverse-engineer-anything"; then
             git commit -q -m "maint($package): $before -> $after" -- "pkgs/$package"
             echo "moved=$package $after" >> "$GITHUB_OUTPUT"
             echo "$package $before becomes $after."

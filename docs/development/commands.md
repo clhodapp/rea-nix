@@ -13,7 +13,7 @@ Run one smoke check with its log:
 
 ```zsh
 nix build --no-link -L '.#checks.x86_64-linux.smoke-rea-agents'
-nix build --no-link -L '.#checks.x86_64-linux.smoke-claude-code-plugin'
+nix build --no-link -L '.#checks.x86_64-linux.smoke-reverse-engineer-anything'
 ```
 
 Move `rea-agents` to upstream's newest stable release, as the update

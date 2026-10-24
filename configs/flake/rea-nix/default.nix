@@ -61,7 +61,7 @@
             checks =
               pkgs.lib.mapAttrs' (name: package: pkgs.lib.nameValuePair "smoke-${name}" package.tests.smoke)
                 {
-                  inherit (packages) rea-agents claude-code-plugin;
+                  inherit (packages) rea-agents reverse-engineer-anything;
                 };
             treefmt.programs.nixfmt.enable = true;
           };

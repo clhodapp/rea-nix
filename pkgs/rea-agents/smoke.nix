@@ -2,11 +2,13 @@
 #
 # Exercises the built package over the interfaces consumers use: the
 # CLI, the MCP server over stdio (the handshake and the tool catalog an
-# agent reads), the generated skill, the native terminal addon, and a
+# agent reads), the generated skill (which must describe the catalog
+# the server lists), the native terminal addon, and a
 # static JavaScript analysis, which launches workers behind REA's procps
 # ownership check. A successful build alone shows none of these.
 {
   coreutils,
+  gnused,
   jq,
   runCommand,
   rea-agents,
@@ -15,6 +17,7 @@ runCommand "rea-agents-smoke"
   {
     nativeBuildInputs = [
       coreutils
+      gnused
       jq
       rea-agents
     ];
@@ -40,9 +43,13 @@ runCommand "rea-agents-smoke"
     echo "the server lists $tools tools"
     test "$tools" -gt 0
 
-    echo "Skill: ${rea-agents.skill}"
-    test -s ${rea-agents.skill}/SKILL.md
-    test -d ${rea-agents.skill}/references
+    echo "Skill: generated into the package, for the catalog the server lists"
+    skill=$package/skills/reverse-engineer-anything
+    test -s "$skill/SKILL.md"
+    test -d "$skill/references"
+    described=$(sed -n 's/^  tool_count: \([0-9]*\)$/\1/p' "$skill/SKILL.md")
+    echo "the skill describes $described tools"
+    test "$described" = "$tools"
 
     echo "Native addon: @lydell/node-pty"
     (cd "$package" && ${rea-agents.nodejs}/bin/node -e 'require("@lydell/node-pty")')
