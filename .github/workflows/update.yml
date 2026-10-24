@@ -1,0 +1,126 @@
+# SPDX-License-Identifier: MIT
+#
+# Follows upstream without anyone bumping by hand. rea-agents tracks
+# upstream's newest stable release, whose tags are named
+# `rea-agents-<version>`. Every run asks GitHub where that line stands
+# and, when the package is behind it, moves it (version, source hash
+# and npm dependency hash, all rewritten by nix-update), proves the
+# result with the smoke checks, and commits the bump to main. A bump
+# whose checks fail is not pushed, and the run fails, naming it.
+#
+# The smoke checks are the proof that matters: upstream releases often
+# (two releases on 2026-10-18 alone), and a successful build does not
+# show that the MCP server still answers, that the skill is still
+# generated, or that the analysis still starts. The plugin's check runs
+# too, since the plugin carries the skill of the new version.
+#
+# A push made with the workflow's own token starts no other workflow,
+# so the two that a push to main would have started are dispatched at
+# the end instead: check.yml, which builds main again, roots it in the
+# build cache and pushes the closure to the clhodapp cache, and
+# notify-workspace.yml, which asks the workspace to converge its
+# consumers onto the new version. A bump is built twice as a result,
+# once here as the gate and once there as the publication; the second
+# build keeps "what main builds is what the caches hold" a property of
+# check.yml alone.
+#
+# A run that finds main moved under it (its push is refused as a
+# non-fast-forward) fails and leaves the bump to the next run.
+
+name: update
+
+on:
+  schedule:
+    # Daily, off the hour. A run with nothing to do installs Nix, reads
+    # the feed and stops, in about a minute.
+    - cron: "41 6 * * *"
+  workflow_dispatch:
+
+# Pushing the bump; dispatching check.yml and notify-workspace.yml.
+permissions:
+  contents: write
+  actions: write
+
+# Two runs at once could both find the same release and race to push.
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # Actions pinned by commit, as in check.yml.
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            sandbox = true
+
+      # nix-update comes from this flake's own nixpkgs pin, so the run
+      # fetches nothing the lock does not name. It reads the package's
+      # fetchFromGitHub source to find the feed, keeps only the tags the
+      # regular expression matches, and rewrites the package file in
+      # place.
+      - name: Move rea-agents to upstream's newest release
+        id: bump
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          package=rea-agents
+          before=$(nix eval --raw ".#$package.version")
+          nix run --inputs-from . 'nixpkgs#nix-update' -- --flake --version-regex 'rea-agents-(.*)' "$package"
+          if git diff --quiet -- "pkgs/$package"; then
+            echo "$package $before is upstream's newest release."
+            exit 0
+          fi
+          after=$(nix eval --raw ".#$package.version")
+          git diff -- "pkgs/$package"
+          if nix build --print-build-logs --no-link \
+               ".#checks.x86_64-linux.smoke-rea-agents" \
+               ".#checks.x86_64-linux.smoke-claude-code-plugin"; then
+            git commit -q -m "maint($package): $before -> $after" -- "pkgs/$package"
+            echo "moved=$package $after" >> "$GITHUB_OUTPUT"
+            echo "$package $before becomes $after."
+          else
+            git checkout -- "pkgs/$package"
+            echo "failed=$package $after" >> "$GITHUB_OUTPUT"
+            echo "::error::$package $after fails its smoke checks; $before stays."
+          fi
+
+      - name: Push the bump to main
+        if: steps.bump.outputs.moved != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MOVED: ${{ steps.bump.outputs.moved }}
+        run: |
+          set -euo pipefail
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}" HEAD:main
+          echo "::notice::Pushed to main: $MOVED."
+
+      # Both take main's head as their subject: check.yml with no inputs
+      # builds main's own commit, and notify-workspace.yml passes the
+      # head of the ref it was dispatched on.
+      - name: Start the runs the push would have started
+        if: steps.bump.outputs.moved != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run check.yml --repo "$GITHUB_REPOSITORY" --ref main
+          gh workflow run notify-workspace.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      - name: Fail for a bump that could not move
+        if: steps.bump.outputs.failed != ''
+        env:
+          FAILED: ${{ steps.bump.outputs.failed }}
+        run: |
+          echo "::error::Held back by a failing smoke check: $FAILED."
+          exit 1
