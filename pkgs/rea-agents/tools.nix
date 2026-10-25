@@ -5,10 +5,13 @@
 # where the wrapper says it is. A tool the package was built without
 # (`.override { <attr> = null; }`) is skipped.
 #
-# The fixture is a small C program compiled here, so Ghidra, objdump
-# and rizin read a real ELF executable; it is never run.
+# The fixture is a small C program compiled here, so Ghidra, Kuna,
+# objdump, rizin and pwntools read a real ELF executable. It runs only
+# under GDB, stopped at a breakpoint, to write the core file the
+# recorded-crash check reads.
 {
   coreutils,
+  gdb,
   gnugrep,
   gzip,
   jq,
@@ -90,6 +93,39 @@ runCommandCC "rea-agents-tools"
 
     ${with' [ "android-tools" ] ''
       run adb-client inspect-adb-client
+    ''}
+
+    ${with' [ "kuna" ] ''
+      run kuna decompile "$fixture" add_numbers --provider kuna
+      grep -q add_numbers kuna.json
+    ''}
+
+    ${with' [ "wakaru" ] ''
+      echo 'var a=function(n){return n+1};module.exports={inc:a};' > "$PWD/bundle.js"
+      run wakaru recover-javascript-sources "$PWD/bundle.js" "$PWD/recovered"
+      test -d recovered
+    ''}
+
+    ${with' [ "rea-sigrok-cli" ] ''
+      run sigrok inspect-signal-decoders --query uart
+      grep -q -i uart sigrok.json
+    ''}
+
+    ${with' [ "rea-wabt" ] ''
+      printf '\0asm\1\0\0\0' > empty.wasm
+      run wasm inspect-wasm-artifact "$PWD/empty.wasm"
+    ''}
+
+    ${with' [ "rea-pwntools-python" ] ''
+      run layout inspect-binary-layout "$fixture"
+      jq -e '.provider.id == "pwntools-elf"' layout.json
+    ''}
+
+    ${with' [ "rea-pwntools-python" "pwndbg" ] ''
+      ${gdb}/bin/gdb -nx -batch -ex 'break add_numbers' -ex run \
+        -ex 'generate-core-file fixture.core' "$fixture"
+      run crash inspect-recorded-crash "$PWD/fixture.core" --debugger-context
+      jq -e '.provider.id == "pwntools-elf" and .normalized_result.debugger.status == "available"' crash.json
     ''}
 
     ${with' [ "binwalk" ] ''

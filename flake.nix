@@ -31,6 +31,10 @@
     nixpkgs-lib.url = "github:nix-community/nixpkgs.lib";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs-lib";
+    # pwndbg at the release REA's crash-context bridge accepts. Its own
+    # flake builds the Python environment pwndbg runs in, from its lock
+    # of PyPI packages, several of which nixpkgs does not carry.
+    pwndbg.url = "github:pwndbg/pwndbg/2026.09.15";
   };
 
   outputs =

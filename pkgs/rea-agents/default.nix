@@ -37,6 +37,16 @@
   rizin,
   unblob,
   wireshark-cli,
+
+  # Optional tools this flake packages, from the same scope.
+  ghidra-nativeaot,
+  jadx-headless-mcp,
+  kuna,
+  pwndbg,
+  rea-pwntools-python,
+  rea-sigrok-cli,
+  rea-wabt,
+  wakaru,
 }:
 let
   # `--set-default <variable> <path>` for a tool that is present.
@@ -47,6 +57,27 @@ let
       variable
       "${package}${path}"
     ];
+
+  # pwndbg runs inside the GDB its own environment carries, which embeds
+  # the Python that environment was built for. REA starts it through
+  # its pwntools Python, which only launches GDB, so the two Pythons
+  # need not match.
+  pwndbgArgs = lib.optionals (pwndbg != null) (
+    let
+      environment = pwndbg.meta.pwndbgVenv;
+    in
+    [
+      "--set-default"
+      "REA_PWNDBG_VENV_PATH"
+      "${environment}"
+      "--set-default"
+      "REA_PWNDBG_GDBINIT"
+      "${environment}/share/pwndbg/gdbinit.py"
+      "--set-default"
+      "REA_PWNDBG_GDB"
+      "${environment}/bin/gdb"
+    ]
+  );
 
   # REA runs `ps` before it launches any child on Linux, to check
   # process ownership, and `rea doctor` lists installs with `which`.
@@ -97,7 +128,18 @@ let
   ++ locate mitmproxy "REA_MITMDUMP_COMMAND" "/bin/mitmdump"
   ++ locate chromium "REA_BROWSER_EXECUTABLE" "/bin/chromium"
   # Read only by `rea doctor`, which reports the version.
-  ++ locate ilspycmd "REA_ILSPY_CMD_PATH" "/bin/ilspycmd";
+  ++ locate ilspycmd "REA_ILSPY_CMD_PATH" "/bin/ilspycmd"
+  # The NativeAOT extension is loaded into Ghidra, and the JADX engine
+  # runs on the JDK named above, which carries the compiler REA needs
+  # for its JADX bridge.
+  ++ locate ghidra-nativeaot "REA_GHIDRA_NATIVEAOT_JAR" "/share/java/rea-ghidra-nativeaot.jar"
+  ++ locate jadx-headless-mcp "REA_JADX_MCP_JAR" "/share/java/jadx-headless-mcp.jar"
+  ++ locate kuna "REA_KUNA_COMMAND" "/bin/kuna"
+  ++ locate wakaru "REA_WAKARU_COMMAND" "/bin/wakaru"
+  ++ locate rea-sigrok-cli "REA_SIGROK_COMMAND" "/bin/sigrok-cli"
+  ++ locate rea-wabt "REA_WABT_BIN_DIRECTORY" "/bin"
+  ++ locate rea-pwntools-python "REA_PWNTOOLS_PYTHON" "/bin/python3"
+  ++ pwndbgArgs;
 in
 buildNpmPackage (finalAttrs: {
   pname = "rea-agents";
@@ -158,6 +200,14 @@ buildNpmPackage (finalAttrs: {
         rizin
         unblob
         wireshark-cli
+        ghidra-nativeaot
+        jadx-headless-mcp
+        kuna
+        pwndbg
+        rea-pwntools-python
+        rea-sigrok-cli
+        rea-wabt
+        wakaru
         ;
     };
     tests = {
