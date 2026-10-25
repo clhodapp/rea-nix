@@ -11,7 +11,9 @@
 # The smoke checks are the proof that matters: upstream releases often
 # (two releases on 2026-10-18 alone), and a successful build does not
 # show that the MCP server still answers, that the skill is still
-# generated, or that the analysis still starts. The skill's check runs
+# generated, or that the analysis still starts. The tools check also
+# catches a release that stops accepting a tool the package closes
+# over, such as a new exact Ghidra version. The skill's check runs
 # too, since the skill package is copied from the new version.
 #
 # A push made with the workflow's own token starts no other workflow,
@@ -85,6 +87,8 @@ jobs:
           git diff -- "pkgs/$package"
           if nix build --print-build-logs --no-link \
                ".#checks.x86_64-linux.smoke-rea-agents" \
+               ".#checks.x86_64-linux.tools-rea-agents" \
+               ".#checks.x86_64-linux.smoke-rea-agents-minimal" \
                ".#checks.x86_64-linux.smoke-reverse-engineer-anything"; then
             git commit -q -m "maint($package): $before -> $after" -- "pkgs/$package"
             echo "moved=$package $after" >> "$GITHUB_OUTPUT"

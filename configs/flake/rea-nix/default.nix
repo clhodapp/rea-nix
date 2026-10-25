@@ -56,13 +56,11 @@
             packages = self.packages.${system};
           in
           {
-            # Each package carries its smoke test; `smoke-<package>` is
-            # how update.yml names the one it runs against a bump.
-            checks =
-              pkgs.lib.mapAttrs' (name: package: pkgs.lib.nameValuePair "smoke-${name}" package.tests.smoke)
-                {
-                  inherit (packages) rea-agents reverse-engineer-anything;
-                };
+            # Every test a package carries, as `<test>-<package>`: the
+            # names update.yml runs against a bump.
+            checks = pkgs.lib.concatMapAttrs (
+              name: package: pkgs.lib.mapAttrs' (test: pkgs.lib.nameValuePair "${test}-${name}") package.tests
+            ) { inherit (packages) rea-agents rea-agents-minimal reverse-engineer-anything; };
             treefmt.programs.nixfmt.enable = true;
           };
       };

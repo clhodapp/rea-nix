@@ -12,7 +12,8 @@ any other file.
 
 | Package | What it is |
 |---|---|
-| `rea-agents` | the `rea` and `rea-agents` commands, built from upstream's newest stable release |
+| `rea-agents` | the `rea` and `rea-agents` commands, built from upstream's newest stable release, with every tool REA can use that nixpkgs carries at a version REA accepts |
+| `rea-agents-minimal` | the same commands with REA's core dependencies only |
 | `reverse-engineer-anything` | REA's agent skill, the directory with its `SKILL.md` and `references/` |
 
 ## Use it
@@ -34,12 +35,51 @@ As a flake input:
 }
 ```
 
-The package carries no analysis engine. REA finds Ghidra through
-`GHIDRA_INSTALL_DIR` or a `ghidra` launcher on its `PATH`, and JADX on
-its `PATH`, as upstream describes in its installation guide. The
-wrapper adds procps to `PATH`, because REA checks process ownership
-with `ps` before it launches a child process on Linux. The optional
-Frida integration is left out.
+## The tools REA uses
+
+REA finds each external tool through an environment variable of its
+own, and several of them through `PATH` as well. The wrapper of
+`rea-agents` sets every one of those variables to a nixpkgs package,
+with `--set-default`, so a value exported by the caller still takes
+precedence.
+
+| Tool | nixpkgs | How REA finds it |
+|---|---|---|
+| Ghidra 12.1, and the JDK it runs on | `ghidra`, `jdk21` | `GHIDRA_INSTALL_DIR`, `JAVA_HOME` |
+| GNU objdump | `binutils` | `REA_OBJDUMP_COMMAND` |
+| Rizin | `rizin` | `REA_RIZIN_COMMAND` |
+| GDB | `gdb` | `REA_GDB_COMMAND` |
+| TShark and capinfos | `wireshark-cli` | `REA_TSHARK_COMMAND`, `REA_CAPINFOS_COMMAND` |
+| binwalk | `binwalk` | `REA_BINWALK_COMMAND` |
+| unblob | `unblob` | `REA_UNBLOB_COMMAND` |
+| adb | `android-tools` | `REA_ADB_PATH` |
+| Apktool | `apktool` | `REA_APKTOOL_COMMAND` |
+| mitmdump (REA's capture bridge requires mitmproxy 12.2.3) | `mitmproxy` | `REA_MITMDUMP_COMMAND` |
+| Chromium | `chromium` | `REA_BROWSER_EXECUTABLE` |
+| ILSpy (read only by `rea doctor`) | `ilspycmd` | `REA_ILSPY_CMD_PATH` |
+
+Each of these is an argument of the package that an override removes:
+
+```nix
+pkgs.rea-nix.rea-agents.override { chromium = null; }
+```
+
+`rea-agents-minimal` removes all of them. Both packages keep REA's
+core dependencies: procps, because REA checks process ownership with
+`ps` before it launches any child process on Linux; `prlimit` from
+util-linux, which REA wraps around tshark, the firmware tools and its
+own EVM worker, and which it would otherwise look for at
+`/usr/bin/prlimit`; and `which`, which `rea doctor` uses.
+
+Some tools REA can use are not here. nixpkgs does not carry wakaru,
+Kuna, pwndbg, the jadx-headless-mcp JAR that REA's JADX provider
+loads, or the ghidra-nativeaot JAR. sigrok-cli, WABT and the Python
+packages behind pwntools are in nixpkgs, but REA requires exact
+versions they do not match. Hopper is unfree, and REA's Linux Hopper
+path runs `/usr/bin/python3`, which NixOS does not provide. IDA is
+proprietary and registered by the caller. The optional Frida
+integration is left out, because its install script downloads a
+prebuilt binding.
 
 ## The skill and the server
 
@@ -63,14 +103,19 @@ describes the tools of one version.
 
 ## Development
 
-`nix flake check` builds both packages and runs their smoke checks.
+`nix flake check` builds the packages and runs their checks.
 The check of `rea-agents` runs the CLI, an MCP `initialize` and
 `tools/list` exchange over stdio (the catalog must not be empty, and
 must have as many tools as the generated skill describes), the native
 terminal addon, and a static analysis of a small JavaScript
-application. The check of the skill reads its `SKILL.md` and every
-reference it names. The skill package fails to build if it ever refers
-to a store path.
+application. It runs for `rea-agents-minimal` as well. A second check
+of `rea-agents` uses the tools it closes over, each through the REA
+command that needs it: `rea doctor` for Ghidra, a Ghidra decompile of
+a small C program, objdump and Rizin on the same program, the TShark,
+Apktool and adb client checks, and a binwalk scan. GDB, unblob,
+mitmdump and Chromium are wired but not exercised. The check of the
+skill reads its `SKILL.md` and every reference it names. The skill
+package fails to build if it ever refers to a store path.
 
 The checks earn their place. Upstream releases often, and a
 successful build does not show that the server still starts, that the

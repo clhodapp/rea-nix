@@ -13,6 +13,8 @@ Run one smoke check with its log:
 
 ```zsh
 nix build --no-link -L '.#checks.x86_64-linux.smoke-rea-agents'
+nix build --no-link -L '.#checks.x86_64-linux.tools-rea-agents'
+nix build --no-link -L '.#checks.x86_64-linux.smoke-rea-agents-minimal'
 nix build --no-link -L '.#checks.x86_64-linux.smoke-reverse-engineer-anything'
 ```
 
