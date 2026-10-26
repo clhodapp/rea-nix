@@ -7,11 +7,11 @@
         "nixpkgs-lib": "nixpkgs-lib"
       },
       "locked": {
-        "lastModified": 1792839032,
-        "narHash": "sha256-OyC9v0xMUouWRaxqMDRf5BzsjtLSaR8p7f4RTkW+ARY=",
+        "lastModified": 1793002175,
+        "narHash": "sha256-b36kCQe3AInQDbuWix7vUDPRdJvR2WaY8Y+58yygAek=",
         "owner": "nix-caisson",
         "repo": "caisson",
-        "rev": "705ceade2842c4dac038ac35c7b42e08c8e4aaeb",
+        "rev": "175939c9de6a4f28ac706f8fdb106693bd52b4bb",
         "type": "github"
       },
       "original": {
@@ -22,11 +22,11 @@
     },
     "caisson-core": {
       "locked": {
-        "lastModified": 1792826197,
-        "narHash": "sha256-3asdzPzt/b0DdVRF3i18jPodpAYx4ZoZogS15u2XZgA=",
+        "lastModified": 1792912516,
+        "narHash": "sha256-VRfoenyzsVr2fnxWJHXM4NvngUwWbbKldNg5sJkyXxA=",
         "owner": "nix-caisson",
         "repo": "caisson-core",
-        "rev": "c2f690e103541d4d76408cc52311cff4ae3d1721",
+        "rev": "8f60ad78c9ad0980d61a87983fd13227038a2f8d",
         "type": "github"
       },
       "original": {
