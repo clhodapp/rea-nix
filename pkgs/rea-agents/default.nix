@@ -15,8 +15,11 @@
   buildNpmPackage,
   callPackage,
   fetchFromGitHub,
+  autoPatchelfHook,
+  gitMinimal,
   makeWrapper,
   nodejs_22,
+  stdenv,
 
   # Core: REA needs these whatever it analyzes.
   procps,
@@ -101,16 +104,16 @@ let
 in
 buildNpmPackage (finalAttrs: {
   pname = "rea-agents";
-  version = "6.7.0";
+  version = "6.8.0";
 
   src = fetchFromGitHub {
     owner = "morluto";
     repo = "rea";
     tag = "rea-agents-${finalAttrs.version}";
-    hash = "sha256-GKgXQZdzsmr2bEffi+UaffY5TseJ7dSQvWwF1kuz2og=";
+    hash = "sha256-2ADn3U3lvUoB4tCEpzO0rMfYE4sis+5uBiEazcp0gpI=";
   };
 
-  npmDepsHash = "sha256-BWMsF0ja+AyQg3w7BKVjzbI372HOKd2bFpFwbCAB5cA=";
+  npmDepsHash = "sha256-3WPXD+qm5WVfrTEvepKwX5RZBfbLBcPB0uDmKIx4MR8=";
 
   # Upstream's engines admit ^22.23.4, ^24.22.1 and >=26.12.1, and its
   # .npmrc makes npm refuse any other Node.
@@ -121,10 +124,25 @@ buildNpmPackage (finalAttrs: {
   # dependency downloads a prebuilt binding from the network.
   npmFlags = [ "--ignore-scripts" ];
 
-  nativeBuildInputs = [ makeWrapper ];
+  # `npm pack`, which the install hook runs to list the package files,
+  # runs upstream's `prepare` whatever the npm flags. `prepare` applies
+  # upstream's patch to the release-please development dependency with
+  # `git apply`, and installs git hooks unless `HUSKY` is 0.
+  nativeBuildInputs = [
+    autoPatchelfHook
+    gitMinimal
+    makeWrapper
+  ];
+  env.HUSKY = "0";
+  # The C++ runtime the prebuilt compiler and the native addon link.
+  buildInputs = [ stdenv.cc.cc.lib ];
 
+  # Upstream compiles with tsrs, which runs a prebuilt compiler binary
+  # from its platform package. That binary names an FHS dynamic loader,
+  # so it is patched before the compile runs it.
   buildPhase = ''
     runHook preBuild
+    autoPatchelf node_modules/@tsrs
     npm run compile
     npm run artifacts:skills
     runHook postBuild
