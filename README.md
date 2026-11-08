@@ -45,7 +45,7 @@ precedence.
 
 | Tool | nixpkgs | How REA finds it |
 |---|---|---|
-| Ghidra 12.1, and the JDK it runs on | `ghidra`, `jdk21` | `GHIDRA_INSTALL_DIR`, `JAVA_HOME` |
+| Ghidra 12.1, and the JDK it runs on | `ghidra`, `jdk25` | `GHIDRA_INSTALL_DIR`, `JAVA_HOME` |
 | GNU objdump | `binutils` | `REA_OBJDUMP_COMMAND` |
 | Rizin | `rizin` | `REA_RIZIN_COMMAND` |
 | GDB | `gdb` | `REA_GDB_COMMAND` |
@@ -57,6 +57,13 @@ precedence.
 | mitmdump (REA's capture bridge requires mitmproxy 12.2.3) | `mitmproxy` | `REA_MITMDUMP_COMMAND` |
 | Chromium | `chromium` | `REA_BROWSER_EXECUTABLE` |
 | ILSpy (read only by `rea doctor`) | `ilspycmd` | `REA_ILSPY_CMD_PATH` |
+
+REA 6.8.0 accepts only Ghidra 12.1.x. When the nixpkgs `ghidra` is on
+the 12.1 line, the package uses it. When nixpkgs has moved past 12.1,
+the package builds the nixpkgs `ghidra` from the 12.1.4 source, the
+release REA verifies, with the patches and the Gradle dependency lock
+that nixpkgs carried for 12.1.4. That build is not in cache.nixos.org,
+so a consumer on such a nixpkgs builds Ghidra from source.
 
 Each of these is an argument of the package that an override removes:
 

@@ -56,7 +56,7 @@ runCommandCC "rea-agents-tools"
     $CC -O0 -o fixture fixture.c
     fixture=$PWD/fixture
 
-    ${with' [ "ghidra" "jdk21" ] ''
+    ${with' [ "ghidra" "jdk25" ] ''
       run doctor doctor --provider ghidra
       jq -e '.healthy == true and all(.scope_checks[]; .ok)' doctor.json
       run decompile decompile "$fixture" add_numbers --provider ghidra

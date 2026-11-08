@@ -35,7 +35,7 @@
   gdb,
   ghidra,
   ilspycmd,
-  jdk21,
+  jdk25,
   mitmproxy,
   rizin,
   unblob,
@@ -80,12 +80,15 @@ let
   ++ lib.concatMap (variable: locate util-linux variable "/bin/prlimit") prlimitVariables
   # REA starts Ghidra by running `java` itself with Ghidra's
   # LaunchSupport.jar, so the JDK that nixpkgs' Ghidra wrapper would
-  # have supplied must be named here.
+  # have supplied must be named here. REA admits the JDK range that the
+  # Ghidra installation declares in its application.properties. Ghidra
+  # 12.1 declares JDK 21 or newer, and nixpkgs builds Ghidra 12.2 for
+  # JDK 25 and declares 25 as its minimum. JDK 25 satisfies both.
   ++ locate ghidra "GHIDRA_INSTALL_DIR" "/lib/ghidra"
-  ++ lib.optionals (jdk21 != null) [
+  ++ lib.optionals (jdk25 != null) [
     "--set-default"
     "JAVA_HOME"
-    jdk21.home
+    jdk25.home
   ]
   ++ locate binutils "REA_OBJDUMP_COMMAND" "/bin/objdump"
   ++ locate rizin "REA_RIZIN_COMMAND" "/bin/rizin"
@@ -171,7 +174,7 @@ buildNpmPackage (finalAttrs: {
         gdb
         ghidra
         ilspycmd
-        jdk21
+        jdk25
         mitmproxy
         rizin
         unblob

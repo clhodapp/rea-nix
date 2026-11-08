@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: MIT
 { callPackage, lib, ... }:
 let
-  rea-agents = callPackage ./rea-agents { };
+  rea-agents = callPackage ./rea-agents {
+    ghidra = callPackage ./rea-agents/ghidra { };
+  };
   # REA with its core dependencies only: no analysis engine and no
   # external tool.
   rea-agents-minimal = rea-agents.override (lib.mapAttrs (_: _: null) rea-agents.tools);
