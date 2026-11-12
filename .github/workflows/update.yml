@@ -16,7 +16,7 @@
 # over, such as a new exact Ghidra version. The skill's check runs
 # too, since the skill package is copied from the new version.
 #
-# A push made with the workflow's own token starts no other workflow,
+# A push made with the GITHUB_TOKEN of the workflow starts no other workflow,
 # so the two that a push to main would have started are dispatched at
 # the end instead: check.yml, which builds main again, roots it in the
 # build cache and pushes the closure to the clhodapp cache, and
@@ -65,7 +65,7 @@ jobs:
             experimental-features = nix-command flakes
             sandbox = true
 
-      # nix-update comes from this flake's own nixpkgs pin, so the run
+      # nix-update comes from the nixpkgs pin of this flake, so the run
       # fetches nothing the lock does not name. It reads the package's
       # fetchFromGitHub source to find the feed, keeps only the tags the
       # regular expression matches, and rewrites the package file in
@@ -110,7 +110,7 @@ jobs:
           echo "::notice::Pushed to main: $MOVED."
 
       # Both take main's head as their subject: check.yml with no inputs
-      # builds main's own commit, and notify-workspace.yml passes the
+      # builds the head commit of main, and notify-workspace.yml passes the
       # head of the ref it was dispatched on.
       - name: Start the runs the push would have started
         if: steps.bump.outputs.moved != ''

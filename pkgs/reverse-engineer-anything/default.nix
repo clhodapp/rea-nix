@@ -9,7 +9,7 @@
 # The skill is copied out of rea-agents and refers to no store path,
 # so installing it does not bring the server and its Node runtime into
 # the closure of the configuration that installs it. A skill and the
-# MCP server it drives can then live on different machines: the skill
+# MCP server it drives can then live in different configurations: the skill
 # beside the agent, the server wherever the consumer runs REA.
 {
   callPackage,

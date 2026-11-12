@@ -37,7 +37,7 @@ Checks (x86_64-linux, checks partition):
 - `smoke-reverse-engineer-anything`
   (`pkgs/reverse-engineer-anything/smoke.nix`): `SKILL.md` names the
   skill in its front matter, and every `references/*.md` it names
-  exists. The package's `allowedReferences = [ ]` makes its own build
+  exists. The package's `allowedReferences = [ ]` makes the package build
   fail if the skill refers to a store path.
 - `treefmt`.
 

@@ -61,7 +61,7 @@ let
 
   # REA wraps tshark, sigrok, the firmware tools, wakaru and its EVM
   # worker in `prlimit`, at `/usr/bin/prlimit` unless these name
-  # another. The EVM worker is REA's own Node process, so the minimal
+  # another. The EVM worker is a Node process of REA, so the minimal
   # package needs `prlimit` too.
   prlimitVariables = [
     "REA_TSHARK_PRLIMIT_COMMAND"

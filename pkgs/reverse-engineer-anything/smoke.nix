@@ -2,7 +2,7 @@
 #
 # Checks the skill as an agent's skill directory reads it: a `SKILL.md`
 # whose front matter names the skill, and the `references/` it points
-# into. The package's own `allowedReferences` already fails the build
+# into. The `allowedReferences` of the package already fails the build
 # of a skill that refers to a store path.
 {
   reverse-engineer-anything,

@@ -7,7 +7,7 @@ assemblies and websites. Upstream distributes it as the npm package
 `rea-agents` and installs it with `npx rea-agents setup`, which edits
 the configuration of each agent in place. This flake builds the same
 package from source instead, at a pinned release, and packages REA's
-agent skill on its own, so that a Nix configuration installs it like
+agent skill as a separate package, so that a Nix configuration installs it like
 any other file.
 
 | Package | What it is |
@@ -37,8 +37,8 @@ As a flake input:
 
 ## The tools REA uses
 
-REA finds each external tool through an environment variable of its
-own, and several of them through `PATH` as well. The wrapper of
+REA finds each external tool through a separate environment variable,
+and several of them through `PATH` as well. The wrapper of
 `rea-agents` sets every one of those variables to a nixpkgs package,
 with `--set-default`, so a value exported by the caller still takes
 precedence.
@@ -75,7 +75,7 @@ pkgs.rea-nix.rea-agents.override { chromium = null; }
 core dependencies: procps, because REA checks process ownership with
 `ps` before it launches any child process on Linux; `prlimit` from
 util-linux, which REA wraps around tshark, the firmware tools and its
-own EVM worker, and which it would otherwise look for at
+EVM worker, and which it would otherwise look for at
 `/usr/bin/prlimit`; and `which`, which `rea doctor` uses.
 
 Some tools REA can use are not here. nixpkgs does not carry wakaru,
@@ -160,7 +160,7 @@ hold, so using it means using them too:
 The flake's `nixConfig` declares all three, so a direct `nix build` or
 `nix flake check` here uses them once accepted: answer Nix's prompt, or
 pass `--accept-flake-config`. A flake that consumes this one as an
-input must add them to its own `extra-substituters` and
+input must add them to its `extra-substituters` and
 `extra-trusted-public-keys`; Nix does not carry an input's settings
 into the consumer.
 
