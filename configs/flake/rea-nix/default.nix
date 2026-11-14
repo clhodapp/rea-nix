@@ -31,7 +31,17 @@
       packages.default = config.packages.rea-agents;
     };
 
-  partitionedAttrs.checks = "checks";
+  # The checks of rea-nix, with the pins of tests/dependencies that only
+  # the checks need (configs/flake/checks). The caisson top gathers the
+  # checks of every configuration declared inside it into its `checks`
+  # output. This selector passes the configuration up to nothing, so a
+  # flake that reads the exports of rea-nix evaluates neither the
+  # configuration nor its pins.
+  caisson.flake-parts.configurations.checks = lib.caisson.flake-parts.mkConfiguration {
+    inherit (lib.caisson.pins.flake-compat ../../../tests/dependencies) dependencies;
+  };
+  caisson.flake-parts.exported = _: { };
+
   partitionedAttrs.formatter = "formatter";
 
   partitions.formatter = {
@@ -41,28 +51,6 @@
       {
         imports = [ inputs.treefmt-nix.flakeModule ];
         perSystem.treefmt.programs.nixfmt.enable = true;
-      };
-  };
-
-  partitions.checks = {
-    extraInputs = (lib.caisson.pins.flake-compat ../../../tests/dependencies).dependencies;
-    module =
-      { inputs, self, ... }:
-      {
-        imports = [ inputs.treefmt-nix.flakeModule ];
-        perSystem =
-          { pkgs, system, ... }:
-          let
-            packages = self.packages.${system};
-          in
-          {
-            # Every test a package carries, as `<test>-<package>`: the
-            # names update.yml runs against a bump.
-            checks = pkgs.lib.concatMapAttrs (
-              name: package: pkgs.lib.mapAttrs' (test: pkgs.lib.nameValuePair "${test}-${name}") package.tests
-            ) { inherit (packages) rea-agents rea-agents-minimal reverse-engineer-anything; };
-            treefmt.programs.nixfmt.enable = true;
-          };
       };
   };
 
